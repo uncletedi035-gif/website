@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>საკითხავი ოთახი — დაწერე და გააზიარე</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Georgian:wght@300;400;500;600;700&family=Noto+Sans+Georgian:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-navy: #12151c;
+    --ink-navy-deep: #0b0d12;
+    --panel: #1a1e27;
+    --paper: #f6f1e6;
+    --paper-shadow: #e8dfc9;
+    --ink-text: #211c14;
+    --ink-text-soft: #5a5142;
+    --amber: #c9954a;
+    --amber-soft: rgba(201,149,74,0.35);
+    --slate: #9aa3b2;
+    --slate-dim: #626b7a;
+    --hairline: rgba(154,163,178,0.14);
+    --red-soft: #b3564a;
+    --font-display: 'Noto Serif Georgian', serif;
+    --font-body: 'Noto Serif Georgian', serif;
+    --font-ui: 'Noto Sans Georgian', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  body{ background: var(--ink-navy); color: var(--slate); font-family: var(--font-ui); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a{ color: inherit; }
+  button{ font-family: var(--font-ui); }
+
+  .bg-grain{ position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+    background-size: 3px 3px; opacity: 0.5; }
+
+  .topnav{ position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between;
+    padding: 20px clamp(20px, 5vw, 64px);
+    background: linear-gradient(to bottom, rgba(11,13,18,0.94), rgba(11,13,18,0.75) 80%, transparent);
+    backdrop-filter: blur(6px); }
+  .brand{ font-family: var(--font-display); font-weight: 500; font-size: 19px; letter-spacing: 0.01em; color: #ece7da;
+    display: flex; align-items: center; gap: 10px; cursor: pointer; background: none; border: none; }
+  .brand-mark{ width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px 2px var(--amber-soft); }
+  .save-status{ font-size: 11.5px; letter-spacing: 0.04em; color: var(--slate-dim); display:flex; align-items:center; gap:8px; }
+  .save-dot{ width:6px; height:6px; border-radius:50%; background: var(--slate-dim); transition: background .3s; }
+  .save-dot.saved{ background: #7fae6d; }
+  .save-dot.saving{ background: var(--amber); }
+
+  main{ position: relative; z-index: 1; }
+
+  #library-view{ display:none; } #library-view.active{ display:block; }
+  .hero{ padding: 48px clamp(20px, 5vw, 64px) 32px; max-width: 920px; }
+  .hero .eyebrow{ font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--amber);
+    margin: 0 0 16px; display:flex; align-items:center; gap:10px; }
+  .hero .eyebrow::before{ content:''; width: 22px; height: 1px; background: var(--amber); display:inline-block; }
+  .hero h1{ font-family: var(--font-display); font-weight: 300; font-style: italic; font-size: clamp(30px, 4.6vw, 50px);
+    line-height: 1.1; color: #f3efe4; margin: 0 0 18px; }
+  .hero h1 em{ font-style: normal; font-weight: 600; color: var(--amber); }
+  .hero p{ font-family: var(--font-body); font-size: 16.5px; line-height: 1.65; color: var(--slate); max-width: 560px; margin: 0; }
+
+  .shelf-section{ padding: 20px clamp(20px, 5vw, 64px) 100px; }
+  .shelf-label{ display:flex; align-items:center; gap: 14px; margin: 0 0 28px;
+    font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate-dim); }
+  .shelf-label::after{ content:''; flex:1; height:1px; background: var(--hairline); }
+  .shelf{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 28px 24px; }
+
+  .book-card{ cursor: pointer; border: none; background: none; padding: 0; text-align: left;
+    display: flex; flex-direction: column; gap: 14px; color: inherit; }
+  .spine{ position: relative; height: 230px; border-radius: 3px 7px 7px 3px; background: var(--book-color, #4a5568);
+    box-shadow: inset 4px 0 0 rgba(0,0,0,0.18), inset -1px 0 0 rgba(255,255,255,0.06), 0 14px 26px -12px rgba(0,0,0,0.55);
+    display: flex; flex-direction: column; justify-content: space-between; padding: 20px 16px;
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s; }
+  .book-card:hover .spine{ transform: translateY(-6px); }
+  .spine .tag{ font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+  .spine .title{ font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1.25; color: rgba(255,255,255,0.96); }
+  .spine .author{ font-size: 11px; letter-spacing: 0.05em; color: rgba(255,255,255,0.6); }
+  .book-meta .status{ font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); margin-bottom: 4px; }
+  .book-meta .blurb{ font-family: var(--font-body); font-size: 13.5px; line-height: 1.5; color: var(--slate-dim); margin: 0; }
+
+  .new-book-card{ height: 230px; border-radius: 6px; border: 1px dashed var(--hairline); background: none; cursor: pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 10px;
+    color: var(--slate-dim); transition: border-color .2s, color .2s; }
+  .new-book-card:hover{ border-color: var(--amber); color: var(--amber); }
+  .new-book-card .plus{ font-size: 26px; font-family: var(--font-display); line-height: 1; }
+  .new-book-card span.label{ font-size: 12.5px; letter-spacing: 0.03em; }
+
+  #book-view{ display:none; min-height: calc(100vh - 74px); } #book-view.active{ display:flex; }
+
+  .book-sidebar{ width: 270px; flex-shrink: 0; border-right: 1px solid var(--hairline);
+    padding: 8px 24px 40px; position: sticky; top: 74px; height: calc(100vh - 74px); overflow-y: auto; }
+  .back-link{ display:flex; align-items:center; gap: 8px; background:none; border:none; cursor:pointer;
+    color: var(--slate-dim); font-size: 12.5px; padding: 14px 0 18px; transition: color .2s; }
+  .back-link:hover{ color: var(--amber); }
+
+  .book-title-input{ width: 100%; background: none; border: none; font-family: var(--font-display); font-style: italic;
+    font-size: 19px; color: #ece7da; padding: 0; margin: 0 0 4px; }
+  .book-title-input:focus{ outline: none; border-bottom: 1px solid var(--amber); }
+  .book-author-input{ width: 100%; background: none; border: none; font-family: var(--font-ui); font-size: 11.5px;
+    color: var(--slate-dim); padding: 0; margin: 0 0 22px; letter-spacing: 0.03em; }
+  .book-author-input:focus{ outline: none; border-bottom: 1px solid var(--hairline); }
+  .book-bio-input{ width: 100%; background: rgba(255,255,255,0.02); border: 1px solid var(--hairline); border-radius: 5px;
+    font-family: var(--font-ui); font-size: 11.5px; line-height: 1.55; color: var(--slate); padding: 8px 10px;
+    resize: vertical; margin: 0 0 20px; }
+  .book-bio-input:focus{ outline: none; border-color: var(--amber); }
+
+  .mode-toggle{ display:flex; background: rgba(255,255,255,0.03); border-radius: 6px; padding: 3px; margin-bottom: 22px; }
+  .mode-toggle button{ flex:1; background:none; border:none; cursor:pointer; padding: 7px 0; font-size: 12px;
+    letter-spacing: 0.03em; color: var(--slate-dim); border-radius: 4px; transition: all .2s; }
+  .mode-toggle button.active{ background: var(--amber); color: #1a1408; font-weight: 600; }
+
+  .chapter-list{ list-style: none; margin: 0 0 14px; padding: 0; }
+  .chapter-list li{ margin-bottom: 2px; display:flex; align-items:center; gap:2px; }
+  .chapter-btn{ flex:1; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; color: var(--slate);
+    padding: 9px 10px; border-radius: 4px; display:flex; gap: 10px; align-items:baseline; transition: background .2s, color .2s;
+    line-height: 1.4; min-width: 0; }
+  .chapter-btn span.tt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chapter-btn .num{ font-size: 10.5px; color: var(--slate-dim); flex-shrink:0; width:16px; }
+  .chapter-btn:hover{ background: rgba(255,255,255,0.03); color: #ece7da; }
+  .chapter-btn.active{ background: rgba(201,149,74,0.1); color: var(--amber); }
+  .chapter-btn.active .num{ color: var(--amber); }
+  .del-chapter{ background:none; border:none; color: var(--slate-dim); cursor:pointer; font-size: 13px; padding: 6px 8px;
+    border-radius: 4px; flex-shrink:0; opacity: 0; transition: opacity .15s, color .15s; }
+  .chapter-list li:hover .del-chapter{ opacity: 1; }
+  .del-chapter:hover{ color: var(--red-soft); }
+
+  .add-chapter-btn{ width: 100%; text-align:left; background:none; border: 1px dashed var(--hairline); cursor:pointer;
+    padding: 9px 12px; border-radius: 4px; font-size: 12.5px; color: var(--slate-dim); transition: border-color .2s, color .2s; }
+  .add-chapter-btn:hover{ border-color: var(--amber); color: var(--amber); }
+
+  .book-main{ flex: 1; display: flex; justify-content: center; padding: 40px 24px 120px; position: relative; }
+  .lamp-glow{ position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 620px; height: 420px;
+    background: radial-gradient(ellipse at center, var(--amber-soft), transparent 68%); filter: blur(10px);
+    pointer-events: none; animation: glow-pulse 6s ease-in-out infinite; }
+  @keyframes glow-pulse{ 0%, 100%{ opacity: 0.5; } 50%{ opacity: 0.8; } }
+
+  .page{ position: relative; z-index: 1; background: var(--paper); color: var(--ink-text); width: 100%; max-width: 640px;
+    border-radius: 2px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.55), 0 2px 0 var(--paper-shadow);
+    padding: clamp(30px, 6vw, 70px) clamp(24px, 7vw, 64px); }
+
+  .page-controls{ display:flex; align-items:center; justify-content: space-between; gap: 16px; margin-bottom: 26px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--paper-shadow); }
+  .page-controls .chapter-label{ font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-text-soft); }
+  .fs-controls{ display:flex; align-items:center; gap: 6px; }
+  .fs-btn{ width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--paper-shadow); background: transparent;
+    color: var(--ink-text-soft); cursor: pointer; font-size: 13px; display:flex; align-items:center; justify-content:center; }
+  .fs-btn:hover{ background: rgba(0,0,0,0.05); }
+
+  .chapter-eyebrow{ font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px; }
+
+  /* READ MODE */
+  .chapter-title{ font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 3.6vw, 34px);
+    line-height: 1.15; margin: 0 0 28px; color: var(--ink-text); }
+  .chapter-body{ font-family: var(--font-body); font-size: var(--reader-fs, 18px); line-height: 1.75; }
+  .chapter-body p{ margin: 0 0 1.3em; }
+  .chapter-body p:first-of-type::first-letter{ font-family: var(--font-display); font-weight: 600; font-size: 3.2em;
+    float: left; line-height: 0.8; padding: 0.05em 0.08em 0 0; color: var(--amber); }
+  .empty-note{ font-family: var(--font-body); font-style: italic; color: var(--ink-text-soft); }
+
+  /* WRITE MODE */
+  .edit-title-input{ width:100%; font-family: var(--font-display); font-weight: 600; font-size: clamp(22px, 3.4vw, 30px);
+    color: var(--ink-text); border: none; background: none; padding: 0; margin: 0 0 22px; }
+  .edit-title-input:focus{ outline:none; border-bottom: 1px solid var(--paper-shadow); }
+  .edit-body-textarea{ width: 100%; min-height: 420px; resize: vertical; border: none; background: none;
+    font-family: var(--font-body); font-size: var(--reader-fs, 18px); line-height: 1.75; color: var(--ink-text); padding: 0; }
+  .edit-body-textarea:focus{ outline: none; }
+  .edit-hint{ font-size: 11.5px; color: var(--ink-text-soft); margin-top: 14px; font-family: var(--font-ui); }
+
+  .page-nav{ display:flex; align-items:center; justify-content: space-between; margin-top: 40px; padding-top: 20px;
+    border-top: 1px solid var(--paper-shadow); }
+  .page-nav button{ background: none; border: none; cursor: pointer; font-size: 12.5px; color: var(--ink-text-soft);
+    display:flex; align-items:center; gap: 8px; transition: color .2s; }
+  .page-nav button:hover:not(:disabled){ color: var(--ink-text); }
+  .page-nav button:disabled{ opacity: 0.3; cursor: default; }
+
+  .share-hint{ margin: 0 0 22px; padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 6px;
+    font-size: 12px; line-height: 1.6; color: var(--slate-dim); background: rgba(255,255,255,0.02); }
+  .share-hint b{ color: var(--slate); }
+
+  footer.site-footer{ padding: 36px clamp(20px, 5vw, 64px) 56px; border-top: 1px solid var(--hairline);
+    font-size: 12px; color: var(--slate-dim); }
+
+  @media (max-width: 760px){
+    .book-sidebar{ position: static; width: 100%; height: auto; border-right: none;
+      border-bottom: 1px solid var(--hairline); padding: 8px 20px 20px; }
+    #book-view.active{ flex-direction: column; }
+    .book-main{ padding: 32px 16px 90px; }
+  }
+  button:focus-visible, .book-card:focus-visible, .chapter-btn:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce){ .lamp-glow{ animation: none; } .book-card .spine{ transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="bg-grain"></div>
+
+<nav class="topnav">
+  <button class="brand" onclick="showLibrary()"><span class="brand-mark"></span> საკითხავი ოთახი</button>
+  <div class="save-status"><span class="save-dot" id="save-dot"></span><span id="save-text">იტვირთება…</span></div>
+</nav>
+
+<main>
+  <section id="library-view">
+    <div class="hero">
+      <p class="eyebrow">დაწერე. შეინახე. გააზიარე.</p>
+      <h1>შენი წიგნი, <em>ცოცხალი</em><br>გვერდზე.</h1>
+      <p>დაწერე შენი წიგნი პირდაპირ ამ გვერდზე — ავტომატურად ინახება. გაუგზავნე ეს ბმული მეგობრებს, რომ თან-და-თან წაიკითხონ, როგორც კი ახალ თავს დაამატებ.</p>
+    </div>
+    <div class="shelf-section">
+      <p class="shelf-label">თაროზე</p>
+      <div class="shelf" id="shelf-grid"></div>
+    </div>
+  </section>
+
+  <section id="book-view">
+    <aside class="book-sidebar">
+      <button class="back-link" onclick="showLibrary()">← თაროზე დაბრუნება</button>
+      <input class="book-title-input" id="book-title-input" placeholder="წიგნის სათაური" />
+      <input class="book-author-input" id="book-author-input" placeholder="ავტორის სახელი" />
+      <textarea class="book-bio-input" id="book-bio-input" placeholder="ავტორის ბიოგრაფია (არასავალდებულო)" rows="3"></textarea>
+
+      <div class="mode-toggle">
+        <button id="mode-read-btn" onclick="setMode('read')">კითხვა</button>
+        <button id="mode-write-btn" onclick="setMode('write')">წერა</button>
+      </div>
+
+      <ul class="chapter-list" id="chapter-list"></ul>
+      <button class="add-chapter-btn" onclick="addChapter()">+ ახალი თავი</button>
+    </aside>
+
+    <div class="book-main">
+      <div class="lamp-glow"></div>
+      <article class="page" id="page-article">
+        <div class="page-controls">
+          <span class="chapter-label" id="page-progress"></span>
+          <div class="fs-controls" aria-label="ტექსტის ზომა">
+            <button class="fs-btn" onclick="changeFontSize(-1)" aria-label="ტექსტის დაპატარავება">A−</button>
+            <button class="fs-btn" onclick="changeFontSize(1)" aria-label="ტექსტის გადიდება">A+</button>
+          </div>
+        </div>
+
+        <div id="share-hint-wrap"></div>
+        <p class="chapter-eyebrow" id="ch-eyebrow"></p>
+
+        <div id="read-mode-content"></div>
+        <div id="write-mode-content" style="display:none;">
+          <input class="edit-title-input" id="edit-title-input" placeholder="თავის სათაური" />
+          <textarea class="edit-body-textarea" id="edit-body-textarea" placeholder="დაიწყე წერა აქ… ცალკე აბზაცისთვის დატოვე ცარიელი ხაზი."></textarea>
+          <p class="edit-hint">ავტომატურად ინახება • ცარიელი ხაზი = ახალი აბზაცი</p>
+        </div>
+
+        <div class="page-nav">
+          <button id="prev-btn" onclick="navChapter(-1)">← წინა თავი</button>
+          <button id="next-btn" onclick="navChapter(1)">შემდეგი თავი →</button>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">საკითხავი ოთახი — გაუზიარე ეს ბმული მეგობრებს, რომ წაიკითხონ ის, რასაც წერ.</footer>
+
+<script>
+const STORAGE_KEY = 'library';
+let library = { books: [] };
+let currentBookId = null;
+let currentChapterIdx = 0;
+let mode = 'read';
+let fontSize = 18;
+let saveTimer = null;
+
+const el = id => document.getElementById(id);
+
+function uid(){ return Math.random().toString(36).slice(2, 9); }
+
+function setSaveStatus(state){
+  const dot = el('save-dot'), text = el('save-text');
+  dot.className = 'save-dot' + (state === 'saved' ? ' saved' : state === 'saving' ? ' saving' : '');
+  text.textContent = state === 'saving' ? 'ინახება…' : state === 'saved' ? 'შენახულია' : state === 'loading' ? 'იტვირთება…' : 'შენახვა ვერ მოხერხდა';
+}
+
+async function loadLibrary(){
+  setSaveStatus('loading');
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){
+      library = JSON.parse(res.value);
+    } else {
+      library = { books: [] };
+    }
+  } catch(e){
+    library = { books: [] };
+  }
+  if(library.books.length === 0){
+    library.books.push(seedBook());
+    await persist();
+  }
+  setSaveStatus('saved');
+  renderShelf();
+}
+
+async function persist(){
+  setSaveStatus('saving');
+  try{
+    const result = await window.storage.set(STORAGE_KEY, JSON.stringify(library), true);
+    setSaveStatus(result ? 'saved' : 'error');
+  } catch(e){
+    setSaveStatus('error');
+  }
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 500);
+}
+
+function newBook(){
+  return {
+    id: uid(),
+    title: 'ახალი წიგნი',
+    author: '',
+    bio: '',
+    color: ['#5b4636','#2f3a4a','#4a3b52','#3d4a3a','#4a3d3d'][Math.floor(Math.random()*5)],
+    chapters: [ { id: uid(), title: 'პირველი თავი', body: '' } ]
+  };
+}
+
+function seedBook(){
+  return {
+    id: uid(),
+    title: 'მარტოობის სიღრმე',
+    author: 'თედი',
+    bio: 'თედი საქართველოდანაა და წერა უყვარს — თითქმის ყოველ ღამე ზის და წერს, პატარ-პატარა ფიქრებს, ისტორიებს, რაღაცებს, რომლებიც სანთელივით ინთება ღამის სიჩუმეში. „მარტოობის სიღრმე" მისი პირველი წიგნია — ღამეების ნაწერების ის ნაწილი, რომელმაც ბოლოს და ბოლოს ერთ ამბავად იშალა.',
+    color: '#4a3b52',
+    chapters: [
+      { id: uid(), title: 'სახლი, სადაც ხმა აღარ ისმის', body:
+`ნიკამ იცოდა ის წუთი, როცა მარტოობა სახლში შემოდის — არა კარის ხმით, არამედ იმ სიჩუმით, რომელიც კარის შემდეგ რჩება. ექვსი თვე იყო, რაც ამ ბინაში მხოლოდ მისი ნაბიჯების ხმა ისმოდა, და მან უკვე იცოდა, რომელ ფილაზე იჭექავს იატაკი და სად დუმს.
+
+ადამიანები ეუბნებოდნენ, რომ მარტოობა ავადმყოფობაა, რომ საიდანღაც უნდა გამოსულიყო, თითქოს ეს ოთახი სნეულების პალატა იყო. მაგრამ ნიკა ამას ვერასოდეს ხვდებოდა ბოლომდე. რადგან სწორედ აქ, ამ ცარიელ კედლებს შორის, დაინახა პირველად რაღაც, რასაც წლების განმავლობაში სხვების ხმაურში ვერ ამჩნევდა — რომ საკუთარ თავთან ლაპარაკს სჭირდება დრო, რომელსაც ადამიანები ჩვეულებრივ სხვას აძლევენ.
+
+ღამღამობით, როცა ქუჩის ფარნები ფანჯარაზე ჩრდილებს ხატავდნენ, ნიკა ხვდებოდა, რომ მარტოობა არ იყო არარაობა — იყო სივრცე, სადაც ყველაფერი, რასაც აქამდე გვერდს უვლიდა, თანდათან ზედაპირზე ამოდიოდა. საკუთარი შიშები. საკუთარი სურვილები, რომლებსაც წლების განმავლობაში სხვისთვის თმობდა. და ია.
+
+ია ყოველთვის იმ წუთს ბრუნდებოდა, როცა ყველაზე ნაკლებად ელოდა. არა როგორც მოგონება, არამედ როგორც სუნთქვა — მისი სიცილის ხმა სამზარეულოში, საღამოს ჩაის სუნი, რომელსაც აღარავინ ალევდა. ნიკამ იცოდა, რომ სიყვარული, რომელიც დარჩა, არ იყო სიყვარული, რომელიც ჰქონდათ — იყო მისი ჩრდილი, რომელიც კედლებზე ჯერ კიდევ იხატებოდა, თუმცა სინათლე, რომელმაც ეს ჩრდილი შექმნა, დიდი ხანია ჩაქრა.
+
+„რატომ ვხედავ ამდენს მხოლოდ მაშინ, როცა შენ აღარ ხარ?" — ჰკითხა ერთხელ ცარიელ ოთახს, და პასუხის მაგივრად მხოლოდ საკუთარი ხმის გამოძახილი დაუბრუნდა. იქნებ სწორედ ეს იყო პასუხი — რომ ზოგიერთი სიმართლე მხოლოდ იმ სივრცეში ისმის, საიდანაც ყველა ხმაური გაქრა.` },
+
+      { id: uid(), title: 'სანამ სიტყვები დაიკარგებოდა', body:
+`ნიკამ კარგად იცოდა დღე, როცა ია წავიდა — არა იმიტომ, რომ თარიღი დაამახსოვრდა, არამედ იმიტომ, რომ იმ დღის შემდეგ ყველა სხვა დღე ერთმანეთს დაემსგავსა. მაშინ ეგონა, რომ ტკივილი გაივლიდა კარის დახურვასთან ერთად. სინამდვილეში ტკივილმა სახლში დარჩენა არჩია.
+
+ის ბოლო საუბარი არ იყო ყვირილი, არც ცრემლები — ეს იყო ორი ადამიანის ხმა, რომლებიც უკვე იცოდნენ პასუხს და მაინც სვამდნენ კითხვას, თითქოს იმედოვნებდნენ, რომ სხვა პასუხს გაიგონებდნენ. „შენ არასდროს გინდოდა, რომ მართლა შემეცნო" — უთხრა ია კართან, ხელჩანთა მხარზე გადაკიდებული, თითქოს უკვე სხვაგან იყო. ნიკამ მაშინ ვერაფერი უპასუხა. მხოლოდ ახლა, ამ ცარიელ ოთახში, ესმოდა, რომ ია მართალი იყო — და რომ ეს პასუხი ექვსი თვე დასჭირდა, რომ თავად საკუთარი თავისთვის ეპოვა.
+
+მან იცოდა ია ისეთი დეტალებით, რომლებსაც არავის უამბობდა. იცოდა, რომ ია ყოველთვის მარცხენა მხარეს იძინებდა, თუნდაც ცარიელი ლოგინის მარჯვენა მხარეს დარჩენილიყო. იცოდა, რომ სიცილის დროს ხელს პირზე იფარებდა, თითქოს რცხვენოდა საკუთარი სიხარულის. მაგრამ ახლა ხვდებოდა, რომ ეს ცოდნა არასოდეს ყოფილა სიახლოვე — იყო მხოლოდ დაკვირვება, რომელსაც ის ვერასოდეს გადააქცევდა კითხვად: „შენ რას გრძნობ, როცა მარტო რჩები?"
+
+ნიკამ ეს კითხვა საკუთარ თავს დაუსვა პირველად მხოლოდ მას შემდეგ, რაც ია აღარ იყო, ვისაც ჰკითხავდა. და ეს იყო ყველაზე მწარე ირონია, რომელიც მარტოობამ მისცა — რომ სწორედ იმ სივრცეში ისწავლა კითხვების დასმა, სადაც უკვე აღარავინ იყო პასუხის გასაცემად.
+
+დილაობით, ყავის სუნთან ერთად, ის ეჯახებოდა ჩვევებს, რომლებიც ორივესთვის იყო აშენებული — ორი ჭიქა, სადაც ერთი საკმარისი გახდა; ალარმი, დაყენებული საათზე, როცა ია ადრე დგებოდა. ეს პატარა ნაშთები ყველაზე მძიმეც იყო, რადგან სახლი არ იცვლებოდა იმ სისწრაფით, რომლითაც იცვლებოდა ცხოვრება. კედლებს ჯერ კიდევ ახსოვდათ ორივენი, თუმცა ოთახში ერთი დარჩა.
+
+მაგრამ ამ დილას ნიკამ რაღაც განსხვავებული აღმოაჩინა. ცარიელ ჭიქას რომ დახედა, პირველად არ იგრძნო მხოლოდ დანაკლისი — იგრძნო კითხვა, რომელიც აქამდე არასოდეს დაუსვამს: ვინ იყო ის, ია-ს გარეშე? არა ის კაცი, ვინც ვინმეს ელოდებოდა, არამედ ის, ვინც მარტო რჩებოდა და ამ სიმარტოვეში ცდილობდა საკუთარი ხმის პოვნას.
+
+ეს კითხვა ჯერ არ ჰქონდა პასუხი. მაგრამ ეს იყო პირველი წუთი, როცა ის აღარ გაურბოდა.` },
+
+      { id: uid(), title: 'რასაც სიჩუმე ასწავლის', body:
+`გავიდა თვე მას შემდეგ, რაც ნიკამ პირველად დაუსვა საკუთარ თავს ის კითხვა. თვე, რომლის განმავლობაშიც ცარიელი ბინა თანდათან შეიცვალა — არა იმიტომ, რომ რაიმე ავეჯი გადაიწყო თუ კედლის ფერი შეიცვალა, არამედ იმიტომ, რომ ნიკამ თავად დაიწყო ცოტა სხვანაირად სიარული ამ ოთახებში.
+
+ადრე, სანამ ია წავიდოდა, საღამოები ავსებული იყო ხმაურით — ტელევიზორის ფონური ლაპარაკი, საერთო სამზარეულოს ჟღარუნი, ორი ადამიანის სუნთქვის რიტმი, რომელიც ერთმანეთს ეჩვია. ახლა საღამოები დუმდნენ, და ნიკამ პირველად ცხოვრებაში დაიწყო ამ სიჩუმეში ყურის დაგდება, ნაცვლად მისი შევსების მცდელობისა.
+
+ერთ ასეთ საღამოს მან ამოიღო რვეული, რომელიც წლების წინ ჰქონდა ნაყიდი და არასდროს გამოუყენებია. პირველ გვერდზე დაწერა არა ისტორია და არც წერილი ვინმესთვის — უბრალოდ ერთი წინადადება: „დღეს ვიგრძენი, რომ სიჩუმეს არ სურს ჩემი დასჯა." ეს წინადადება მარტივი იყო, თითქმის უხერხულიც, მაგრამ ნიკამ მასში პირველად იგრძნო რაღაც, რასაც წლების განმავლობაში სხვისი ხმაურის ქვეშ ვერ პოულობდა — საკუთარი აზრის სიცხადე.
+
+მან დაიწყო ამ რვეულში წერა ყოველ საღამოს, ჯერ ორიოდე წინადადებით, მერე გვერდებით. წერდა არა იმაზე, რაც ია-სთან დაკარგა, არამედ იმაზე, რასაც საკუთარ თავში პოულობდა — რომ უყვარდა დილის სიჩუმეში ყავის დალევა, ისე, რომ არავისთვის აეხსნა, რატომ დუმდა ამდენ ხანს. რომ სიამოვნებდა წიგნის კითხვა ბოლომდე, სხვისი აზრის მოლოდინის გარეშე. რომ საკუთარი აზრები, როცა არავის უზიარებდა მაშინვე, უფრო ღრმად ჩამოყალიბდებოდა, ვიდრე მაშინ, როცა ვინმეს პასუხს ელოდებოდა.
+
+მაგრამ იყო ღამეები, როცა ეს სიცხადეც არ კმაროდა. ღამეები, როცა ია-ს არყოფნა ისევ იმ ძველი წონით ეცემოდა მკერდზე, და ნიკა ხვდებოდა, რომ ზრდა არ ნიშნავდა ტკივილის გაქრობას — ნიშნავდა იმას, რომ ტკივილთან ერთად ცხოვრებას სწავლობდა, მისი გაქცევის მაგივრად.
+
+ერთხელ, ასეთი ღამის შემდეგ, მან პირველად დარეკა ია-სთან — არა შესარიგებლად, არც წარსულის დასაბრუნებლად, არამედ უბრალოდ, რომ ეთქვა ის, რაც ექვსი თვის განმავლობაში ვერ ეთქვა. „მადლობა," — უთხრა, როცა ია პასუხობდა, ხმაში გაკვირვება ეტყობოდა. „ვგრძნობ, რომ შენი წასვლის შემდეგ ბევრი რამ ვისწავლე საკუთარ თავზე. ეს არ ნიშნავს, რომ არ მტკივა. უბრალოდ მინდოდა გცოდნოდა."
+
+ხაზის მეორე მხარეს გავრცელდა სიჩუმე — არა უხერხული, არამედ ისეთი, რომელშიც ორივემ იცოდა, რომ რაღაც დასრულდა და რაღაც სხვა დაიწყო. „მეც ბევრი რამ ვისწავლე," — თქვა ბოლოს ია. „და მადლობელი ვარ, რომ ეს გითხარი."
+
+ზარის დამთავრების შემდეგ ნიკა კარგა ხანს იჯდა ცარიელ ოთახში, მაგრამ ეს სიცარიელე უკვე სხვანაირი იყო. არა ის ხვრელი, რომელიც ია-მ დატოვა, არამედ სივრცე, რომელიც თავად ავსო — ნელა, გვერდ-გვერდ, საკუთარი წინადადებებით.` },
+
+      { id: uid(), title: 'სახლი, რომელიც ხელახლა ისწავლა სუნთქვა', body:
+`ზამთარმა ისე მოულოდნელად მოაღწია, რომ ნიკამ ვერც კი შეამჩნია, როდის შეიცვალა ფანჯრის მიღმა ხედი — ჯერ ყვითელი ფოთლები, მერე შიშველი ტოტები, ბოლოს პირველი თოვლი, რომელიც ქუჩის ფარნების შუქზე ნელა ეშვებოდა. მან ეს ცვლილება იმ საღამოს შენიშნა, როცა რვეულს გადაფურცლა და მიხვდა, რომ თითქმის ას გვერდს მიაღწია.
+
+ამ გვერდებში ის აღარ ეძებდა პასუხს კითხვაზე „ვინ ვარ ია-ს გარეშე". პასუხი ნელ-ნელა ჩამოყალიბდა თავად, ისე, რომ ცალკე დღეს ვერ დაასახელებდა, როცა ეს მოხდა. იცოდა, რომ საღამოობით ხატვა უყვარდა — არა კარგად, არც ვინმეს საჩვენებლად, უბრალოდ ხაზების გავლება ამშვიდებდა. იცოდა, რომ სამეზობლო კაფეში ცალკე მაგიდასთან ჯდომა უკვე აღარ იყო უხერხულობის მიზეზი, არამედ პატარა სიამოვნება, საკუთარი აზრებით, საკუთარი ტემპით.
+
+ერთ შაბათს, პირველი ისეთი დღე, როცა გარეთ სუფთა ცა იდგა, ნიკამ პარკში გასეირნება გადაწყვიტა. გზად შეხვდა მეზობელს, რომელსაც წლების განმავლობაში მხოლოდ კიბეებზე ესალმებოდა და არაფერი მეტი. ამჯერად კი გაჩერდა, ესაუბრა, გაეცინა — და მიხვდა, რომ ეს პატარა საუბარი აღარ იყო დანატოვნი დროის ამოვსება, რომელსაც აქამდე ია ავსებდა. იყო თავისთავადი, მსუბუქი, ისეთი, რაც უბრალოდ მოხდა, რადგან ნიკა კვლავ ღია იყო სამყაროსთვის.
+
+საღამოს, სახლში დაბრუნებული, მან პირველად შენიშნა, რომ ცარიელი ჭიქები აღარ ეჯახებოდა თვალს ისე, როგორც ადრე. სახლი ისევ იმ სახლი იყო — იგივე კედლები, იგივე ია-ს დატოვებული ჩრდილი — მაგრამ ნიკამ ისწავლა მასში სხვანაირად სუნთქვა. არა ტკივილის უარყოფით, არამედ იმის მიღებით, რომ ტკივილი და ზრდა ერთსა და იმავე ოთახში შეიძლება ცხოვრობდნენ.
+
+მან რვეულში ბოლო წინადადება ჩაწერა იმ საღამოს: „ვფიქრობდი, რომ მარტოობა მასწავლიდა მხოლოდ იმას, რაც დავკარგე. ახლა ვხვდები, რომ მასწავლა, რაც ყოველთვის მქონდა — უბრალოდ ვერასოდეს მინახავს ცალკე."
+
+გარეთ თოვლი აგრძელებდა ცვენას, ჩუმად, თანმიმდევრულად, ისე, როგორც დრო თავად მოძრაობს — შეუმჩნევლად, მაგრამ განუწყვეტლივ, სანამ ერთ დღეს არ მიხვდები, რომ სულ სხვა პეიზაჟში დგახარ.` },
+
+      { id: uid(), title: 'სახე, რომელიც აღარ იმალებოდა', body:
+`გაზაფხულმა ქალაქს ისე მოულოდნელად წაუსწრო, როგორც ზამთარმა — ერთ დილას ნიკამ ფანჯარა გააღო და შენიშნა, რომ ჰაერი უკვე აღარ იყო ისეთი მჭრელი, როგორც კვირას წინ. ეზოში, ძველი კაკლის ხეზე, პირველი კვირტები გამოჩნდა, პატარა, თითქმის უხილავი, მაგრამ საკმარისი იმისთვის, რომ რაღაც შიგნით შეეძრა.
+
+მან რვეული ახლა უფრო ხშირად აიღო ხელში, ვიდრე ადრე. აღარ იყო მხოლოდ საღამოს რიტუალი — ხანდახან დილაც იწყებოდა რამდენიმე წინადადებით, ხანდახან სამუშაო დღის შუაშიც აჩერებდა, რომ ერთი აზრი არ დაეკარგა. წერა თანდათან იქცა არა მისი მარტოობის ჩანაწერად, არამედ მისი ცხოვრების ჩვეულ ნაწილად — ისეთივე, როგორც ყავის სუნი დილით, თუ ფანჯრიდან შემოსული სინათლე.
+
+ერთ პარასკევს, საყიდლების მაღაზიაში, სადაც წლების განმავლობაში ავტომატურად დადიოდა, თვალი მოკრა ვიღაცას თაროსთან — ქალს, რომელიც წიგნების განყოფილებაში ჩუმად ათვალიერებდა თაროებს, თითქოს დროს არ ჩქარობდა. ნიკამ ვერც კი მიხვდა, როგორ გაჩერდა იმავე რიგში, თითქოს შემთხვევით, თუმცა შიგნით იცოდა, რომ ეს პაუზა თავად აირჩია.
+
+„ეს კარგია," — უთხრა ქალმა, როცა შენიშნა, რომ ნიკა იმავე წიგნს დააკვირდა, რომელსაც თავად ეჭირა ხელში. „ცოტა მძიმეა დასაწყისში, მაგრამ ბოლოს ღირს."
+
+ნიკამ გაიღიმა, პირველად წლების განმავლობაში ისე, რომ ამ ღიმილში არაფერი ეძებდა — არც შესადარებელს, არც მოგონებას. უბრალოდ საუბარი იყო, მსუბუქი და შემთხვევითი, ორ ადამიანს შორის, რომლებიც ორივენი წიგნების სიყვარულით იდგნენ ერთ რიგში. მისი სახელი მარიამი იყო, თარჯიმანი, რომელიც ახლახან გადმოიცვალა ამ უბანში.
+
+ეს საუბარი ხუთ წუთს გასტანა, ჩვეულებრივი სიტყვები ჩვეულებრივ ადამიანებს შორის, მაგრამ ნიკამ სახლში დაბრუნებულმა შენიშნა, რომ არაფერი შეედარებინა, არავისთან — არც ია-სთან, არც წარსულთან. ეს იყო წუთი, რომელიც მხოლოდ თავისთავად არსებობდა, ისე, როგორც ცალკე ფურცელი, რომელზეც ჯერ არაფერი დაწერილა.
+
+იმ საღამოს რვეულში ჩაწერა: „დღეს ვინმეს გავეცინე, არაფრის მოლოდინის გარეშე. ეს პატარა რამ იყო, მაგრამ პირველად ვიგრძენი, რომ ჩემი სახე აღარ იმალება იმ სახის ჩრდილში, რომელიც აქამდე მატარებდა."
+
+მან არ იცოდა, გახდებოდა თუ არა ეს შემთხვევითობა რამეზე მეტი. მაგრამ პირველად დიდი ხნის განმავლობაში, ეს გაურკვევლობა შიშს კი არ იწვევდა — ცნობისმოყვარეობას იწვევდა.` },
+
+      { id: uid(), title: 'ორი ბილიკის შეხვედრა', body:
+`მას შემდეგ, რაც ერთხელ შეხვდნენ წიგნების მაღაზიაში, ნიკამ და მარიამმა კიდევ რამდენჯერმე გადაიკვეთეს გზები — ჯერ შემთხვევით, კუთხის კაფეში, მერე უკვე ნაკლებად შემთხვევით, როცა ნიკამ შენიშნა, რომ პარასკევობით სწორედ იმ საათისთვის გამოდიოდა სახლიდან, როცა მარიამი ჩვეულებრივ იქ იჯდა წიგნით.
+
+მან ეს საკუთარ თავს არ დაუმალა. იცოდა, რას აკეთებდა, და ეს ცოდნა უცნაურად თავისუფლებას გრძნობდა — არა იმიტომ, რომ რაღაც დიდი ან გადამწყვეტი ხდებოდა, არამედ იმიტომ, რომ პირველად წლების განმავლობაში საკუთარ სურვილს ღიად უყურებდა, მისი გამართლების საჭიროების გარეშე.
+
+მარიამი განსხვავებული იყო ია-სგან ისეთი წვრილმანებით, რომლებსაც ნიკა თავიდან ვერც ამჩნევდა — ლაპარაკობდა ნელა, ფიქრობდა კითხვამდე, და ხშირად სიჩუმეს არჩევდა პასუხის ნაცვლად, თუ ეს სიჩუმე უფრო ზუსტი იყო. ერთხელ, კაფეში, როცა ნიკამ ჰკითხა, რატომ თარგმნიდა წიგნებს და არა თავად წერდა, მარიამმა კარგა ხანს არაფერი უპასუხა, მერე თქვა: „მიყვარს სხვისი სამყაროს გადმოტანა ისე, რომ საკუთარი ხმა არ დავკარგო. ეს თავისთავად ერთგვარი წერაა."
+
+ნიკამ ეს პასუხი დღეობით ატარა თან, ისე, როგორც ატარებდა წინადადებებს, რომლებსაც საკუთარ რვეულში წერდა. მიხვდა, რომ მარიამთან საუბარი არასოდეს გრძნობდა ცარიელი დროის შევსებას — გრძნობდა ორი ცალკე სამყაროს შეხებას, რომლებიც ერთმანეთს არაფერს არ ართმევდნენ, უბრალოდ ერთმანეთს ეცნობოდნენ.
+
+მაგრამ იყო ღამეები, როცა ეს ახალი სინათლე ძველ ჩრდილს არ აქრობდა. ერთხელ, მარიამთან სასეირნოდან დაბრუნებულმა, ნიკამ სახლის კარი გამოაღო და უეცრად იგრძნო ის ძველი წონა — არა ია-ს მონატრება, არამედ შიში, რომ ხელახლა გახსნა კარს ისევ დახურვაზე დამთავრდებოდა. იჯდა ჩალიჩზე გრძელხანს, ცარიელი ჭიქა ხელში, და ჰკითხა საკუთარ თავს: მზად იყო თუ არა ხელახლა ვინმეს მისცემოდა ის, რასაც ერთხელ უკვე ერთმა ადამიანმა წაართვა?
+
+პასუხი მაშინვე არ მოვიდა. მაგრამ რვეულში იმ ღამეს დაწერა: „შიში ახალის წინაშე არ ნიშნავს, რომ არ ვარ მზად — ნიშნავს, რომ ვიცი, რისი დაკარგვაც შემიძლია. ეს ცოდნა, იქნებ, თავად არის მზაობის ნიშანი."
+
+მან გადაწყვიტა, რომ ნელა წავიდოდა. არა შიშის გამო, არამედ პატივისცემით — საკუთარი თავისთვის, საკუთარი ისტორიისთვის, და მარიამისთვის, რომელიც იმსახურებდა კაცს, ვინც მთელი გულით შედის ურთიერთობაში, არა მისი ჩრდილით.` },
+
+      { id: uid(), title: 'გახსნა', body:
+`გავიდა კიდევ რამდენიმე კვირა, სანამ ნიკა და მარიამი უკვე რეგულარულად ხვდებოდნენ — არა მხოლოდ კაფეებში შემთხვევით, არამედ განზრახ, წინასწარ დათქმულ საღამოებზე. ერთ ასეთ საღამოს, როცა ორივენი მარიამის აივანზე იჯდნენ, ცისარტყელასფერი მზის ჩასვლის ქვეშ, მარიამმა ჰკითხა კითხვა, რომელსაც აქამდე ფრთხილად უვლიდა გვერდს: „როგორი იყო შენი ბოლო ურთიერთობა?"
+
+ნიკამ ერთი წამით მიიხედ-მოიხედა, თითქოს პასუხს ჰაერში ეძებდა. ადრე ეს კითხვა კარს დაუხურავდა — შეეცვალა თემა, გაეღიმა და გვერდი აეხვია. მაგრამ ახლა, ამ აივანზე, სხვანაირად იგრძნო თავი.
+
+„მას ია ერქვა," — დაიწყო ნელა. „სამი წელი ვიყავით ერთად. და როცა წავიდა, ვგრძნობდი, თითქოს ვინმემ ოთახიდან ჰაერი გამოიღო." გაჩერდა, სიტყვები აწონ-დაწონა. „დიდხანს ვფიქრობდი, რომ ეს ტკივილი უნდა დამემალა, თითქოს სისუსტის ნიშანი იყოს. მაგრამ ბოლო თვეების განმავლობაში ვისწავლე, რომ ტკივილი, რომელსაც ვმალავ, უფრო მეტ ადგილს იკავებს, ვიდრე ის, რომელსაც ვაღიარებ."
+
+მარიამი დუმდა, თუმცა ეს სიჩუმე არ იყო ცარიელი — იყო ისეთი, რომელშიც ისმოდა ყურადღება. „მადლობა, რომ მითხარი," — თქვა ბოლოს. „არ მჭირდება, რომ ჩემთვის მოძველებული ისტორია იყო. მჭირდება მხოლოდ ვიცოდე, ვინ ხარ — და ეს ისტორია შენი ნაწილია."
+
+ნიკამ იმ წამს იგრძნო რაღაც, რასაც სიტყვებით ძნელად თუ გამოხატავდა — არა შვება, არც სიხარული, არამედ უფრო მშვიდი რამ, სივრცის მსგავსი, რომელიც ბოლოს და ბოლოს ღიად დარჩა ორ ადამიანს შორის. მან მიხვდა, რომ ნდობა არ ნიშნავდა წარსულის წაშლას — ნიშნავდა ვინმესთვის იმის ჩვენებას, ვინც ნამდვილად იყო, ჩრდილების ჩათვლით.
+
+იმ ღამეს, სახლში დაბრუნებულმა, რვეულში დაწერა: „დღეს ვინმეს ჩავანდე ის, რაც მტკიოდა, და არ ჩავიშალე. იქნებ ეს არის სიახლოვის დასაწყისი — არა ორი სრულყოფილი ადამიანის შეხვედრა, არამედ ორი ადამიანის, რომლებმაც იციან საკუთარი ჩრდილები და მაინც ირჩევენ სინათლისკენ სიარულს."` },
+
+      { id: uid(), title: 'შემთხვევითი შეხვედრა', body:
+`საერთო მეგობრის დაბადების დღე იმ ტიპის ღონისძიება იყო, რომელსაც ნიკა ჩვეულებრივ თავს არიდებდა — ბევრი ხალხი, ხმაური, ნაცნობი სახეები, რომლებთანაც პატარა საუბრებს უნდა გაუძლო. მაგრამ ამჯერად წასვლა გადაწყვიტა, ნაწილობრივ იმიტომ, რომ მარიამიც წვეულებაზე უნდა ყოფილიყო.
+
+დარბაზში შესვლისთანავე, ხალხის ხმაურში, თვალი ერთ ნაცნობ სახეს მოჰკრა — ია იდგა ფანჯარასთან, ხელში ჭიქა ღვინით, საუბრობდა ვიღაცასთან, რომელსაც ნიკა არ იცნობდა. გულმა ერთი წამით უფრო სწრაფად დაუწყო ცემა, ძველი რეფლექსივით, მაგრამ ნიკამ შენიშნა რაღაც უცნაური — ეს ცემა შიშისგან კი არა, უბრალო გაკვირვებისგან იყო.
+
+ია პირველმა შენიშნა და მისკენ წამოვიდა, ღიმილით, რომელშიც ნიკამ ვეღარ ამოიცნო ის ტკივილი, რომელსაც ექვსი თვის წინ ატარებდა მასთან ერთად. „ნიკა," — უთხრა, ხმაში გულწრფელი სითბო. „კარგად გამოიყურები."
+
+„შენც," — უპასუხა ნიკამ, და მიხვდა, რომ ეს სიტყვები არ ტყუოდა.
+
+ისინი გაჩერდნენ, ორივენი ცოტა უხერხულად, სანამ ია არ დაიწყო: „ბევრჯერ მინდოდა დამერეკა, მაგრამ არ ვიცოდი, რას ვიტყოდი გარდა იმისა, რაც უკვე ვთქვით." გაჩერდა. „ხარ კარგად?"
+
+ნიკამ ერთი წამით დაფიქრდა, სანამ უპასუხებდა — არა იმიტომ, რომ პასუხი არ იცოდა, არამედ იმიტომ, რომ პირველად სურდა ეს პასუხი ჭეშმარიტად ეთქვა, სიტყვების გალამაზების გარეშე. „ვარ. ძნელი გზა იყო, მაგრამ ვარ. და შენ?"
+
+„მეც," — თქვა ია, და ორივემ იცოდა, რომ ეს „კარგადობა" არ ნიშნავდა ტკივილის არარსებობას, არამედ იმას, რომ ორივემ ისწავლა მასთან ცხოვრება.
+
+საუბარი ბუნებრივად გაგრძელდა — სამუშაოზე, საერთო მეგობრებზე, არაფერზე განსაკუთრებულზე. არც ერთს არ უხსენებია, რა მოხდა მათ შორის, და ამ დუმილში იყო თავისებური მადლიერება — თითქოს ორივემ იცოდა, რომ ზოგიერთი თავი დახურულია და აღარ საჭიროებს ხელახლა გახსნას.
+
+მარიამმა, დარბაზის მეორე მხრიდან, ნიკას თვალი მოაკვდინა, კითხვის ნიშნით — კარგადა ხარო? ნიკამ მსუბუქად თავი დაუქნია, და ეს პატარა ჟესტი, შორიდან გაცვლილი, უფრო მეტს ამბობდა, ვიდრე ბევრი სიტყვა შეძლებდა.
+
+როცა ია საბოლოოდ დაშორდა, სხვა მეგობრებთან საუბრის გასაგრძელებლად, ნიკამ იგრძნო რაღაც, რასაც აქამდე ვერასოდეს მოელოდა — არა შვება იმის გამო, რომ საუბარი დასრულდა, არამედ სიმშვიდე იმისა, რომ შესაძლებელი იყო. რომ ორი ადამიანი, რომლებმაც ერთმანეთს ტკივილი მიაყენეს, შეეძლოთ ერთ ოთახში დგომა, ერთმანეთისთვის კეთილი სურვილის გარეშე ღალატისა, საკუთარი ახალი გზების მიმართ.
+
+იმ ღამეს რვეულში დაწერა: „დღეს ვნახე ის, ვინც ერთ დროს მთელი ჩემი სამყარო იყო, და ვიგრძენი მშვიდობა, არა ტკივილი. იქნებ ეს არის განკურნების ნიშანი — არა დავიწყება, არამედ ის, რომ წარსული უკვე აღარ განსაზღვრავს აწმყოს ფერს."` },
+
+      { id: uid(), title: 'არჩევანი', body:
+`გაზაფხული ზაფხულში გადადიოდა, როცა ნიკამ შენიშნა, რომ მარიამთან ურთიერთობა უკვე აღარ იყო ის, რაც თავიდან იყო — მსუბუქი, უპასუხისმგებლო შემთხვევითობა. მარიამმა ჰკითხა, გინდა თუ არა შეხვედროდა მშობლებს, რომლებიც ქალაქში ჩამოსული იყვნენ. ეს პატარა თხოვნა უფრო დიდი კითხვის კარი გახდა — მზად იყო თუ არა ნიკა, გადაედგა ნაბიჯი, რომელიც უკან დახევას აღარ დაუტოვებდა?
+
+იმ ღამეს ვერ დაიძინა. იჯდა სამზარეულოს მაგიდასთან, რვეული წინ გაშლილი, მაგრამ სიტყვები არ მოდიოდა ისე ადვილად, როგორც აქამდე. აზრები ერთმანეთს ეჯახებოდა — შიში, რომ ისევ ჩავარდებოდა იმავე ტკივილში; იმედი, რომელსაც ვერ იჯერებდა ბოლომდე; და უფრო ღრმა კითხვა, რომელსაც თავს არიდებდა თვეების განმავლობაში: ხომ არ ერჩია მარტოობის უსაფრთხოება, ვიდრე სიყვარულის რისკი?
+
+მან გაიხსენა ის ღამეები, როცა მარტოობაში პირველად დაინახა რაღაც ნამდვილი საკუთარ თავში — მოთმინება, სიცხადე, უნარი, ეცხოვრა საკუთარი თავისთვის, ვინმეს მოლოდინის გარეშე. ეს აღმოჩენა ძვირფასი იყო, და ნაწილი მისი შიშობდა, რომ ახალ ურთიერთობაში ეს ყველაფერი ისევ დაიკარგებოდა, როგორც ია-სთან, როცა თანდათან საკუთარი თავის ნაწილები სხვისთვის დათმო.
+
+მაგრამ იყო განსხვავება, რომლის დანახვასაც ახლა შეძლო — მარიამთან ურთიერთობა არ ითხოვდა მისგან უარის თქმას საკუთარ თავზე. მარიამი პატივს სცემდა იმ ცალკე სივრცეს, რომელიც ნიკამ ისწავლა დაეცვა. ურთიერთობა, რომელსაც ისინი აშენებდნენ, არ იყო ორი ცარიელობის შევსება ერთმანეთით — იყო ორი სრული სამყაროს არჩევანი, დროდადრო შეხვედროდნენ ერთმანეთს.
+
+განთიადისას მან რვეულში დაწერა ბოლო წინადადება, სანამ გადაწყვეტილებას მიიღებდა: „მარტოობამ მასწავლა, ვინ ვარ, როცა არავინ მიყურებს. ახლა დროა ვისწავლო, ვინ შემიძლია ვიყო, როცა ვინმე მიყურებს — და ჩემი თავი მაინც არ დამეკარგოს."
+
+დილით მარიამს დაურეკა. „მინდა შენს მშობლებს გავეცნო," — თქვა, ხმაში ისეთი სიმტკიცით, რომელსაც თავად არ ელოდა. „და მინდა, იცოდე — ეს ჩემთვის ადვილი არ არის, მაგრამ მინდა ვცადო. შენთან ერთად."
+
+მარიამის ხმაში სიხარული ისმოდა, თუმცა არა გაკვირვების — თითქოს იცოდა, რომ ნიკა ამ სივრცემდე თავად უნდა მისულიყო, საკუთარი ტემპით. „ვიცოდი, რომ მზად იქნებოდი, როცა მზად იქნებოდი," — უპასუხა უბრალოდ.` },
+
+      { id: uid(), title: 'სივრცე, სადაც ორივე ეტევა', body:
+`შემოდგომამ ისევ დაბრუნდა, ისე, როგორც წელიწადში ერთხელ ყოველთვის ბრუნდება — ნელა, ფოთლების ფერის ცვლილებით, ჰაერის სიგრილით, რომელიც ღია ფანჯრიდან შემოდიოდა. ნიკას იმ პირველი შემოდგომიდან, როცა მარტოობამ პირველად კარი დააკაკუნა, ერთი წელი გავიდა.
+
+ის ახლა მარიამის — ახლა უკვე მათი ორივესი — ბინაში იჯდა, სამზარეულოს იმ მაგიდასთან, სადაც ერთხელ მარტო წერდა ღამეობით. მაგიდა იგივე იყო, რვეულიც იგივე, თუმცა უკვე თითქმის ბოლომდე ამოწერილი. მარიამი მეორე ოთახში იჯდა, წიგნს თარგმნიდა, ხანდახან ხმამაღლა კითხულობდა წინადადებას, რომლის თარგმნაც უჭირდა, და ნიკა ეხმარებოდა სიტყვის პოვნაში.
+
+ეს არ იყო ის სურათი, რომელსაც ერთი წლის წინ წარმოიდგენდა. მაშინ ეგონა, რომ განკურნება ნიშნავდა მარტოობის დასრულებას, თითქოს ორი ცალკე ცხოვრება ერთ სრულ სურათად უნდა შერწყმულიყო. ახლა იცოდა, რომ ეს ასე არ იყო. ის და მარიამი ორივენი ცალ-ცალკე სრულები დარჩნენ — თითოეულს თავისი სივრცე ჰქონდა, თავისი სიჩუმე, რომელსაც არავინ არ ერეოდა — და სწორედ ამის გამო შეეძლოთ ერთმანეთს ნამდვილად შეხვედროდნენ, ცარიელობის შევსების გარეშე.
+
+ნიკამ რვეულს ბოლო გვერდზე მიხედა. თითქმის სავსე იყო, ერთი წლის ნაწერით — ტკივილით, აღმოჩენით, ნელი ცვლილებებით, რომლებსაც დღე-დღეზე ვერ ამჩნევდა, მაგრამ ახლა, უკან რომ იხედებოდა, აშკარად ჩანდა. აიღო კალამი და ბოლო წინადადება ჩაწერა.
+
+„ერთი წლის წინ ვწერდი, რომ სახლი, სადაც ხმა აღარ ისმის, მასწავლიდა იმას, რასაც ხმაურში ვერასოდეს ვხედავდი. ახლა ვწერ ამ სიტყვებს იმ სახლში, სადაც ისევ ორი ხმა ისმის — და მაინც, ის სიღრმე, რომელიც მარტოობაში ვიპოვე, არსად წასულა. ის ჩემშია, ისევე როგორც მარიამის სიცილი მეორე ოთახიდან. ორივე ერთად ეტევა. იქნებ ეს არის ის, რასაც ადრე ვერ ვხვდებოდი — რომ მარტოობა არ არის სივრცის საწინააღმდეგო, რომელსაც ვინმესთან ვინაწილებ. ორივე ერთსა და იმავე გულში ეტევა, თუ ადგილს დაუთმობ."
+
+მარიამმა კარიდან შემოიხედა. „რას წერ?" — ჰკითხა, ჩვეული ღიმილით.
+
+„ბოლო წინადადებას," — უპასუხა ნიკამ.
+
+„და მერე?"
+
+ნიკამ რვეული დახურა და ხელი მისკენ გაუწოდა. „მერე ახალს დავიწყებ."` }
+    ]
+  };
+}
+
+function renderShelf(){
+  const grid = el('shelf-grid');
+  grid.innerHTML = '';
+  library.books.forEach(book => {
+    const wordCount = book.chapters.reduce((sum, c) => sum + (c.body ? c.body.trim().split(/\s+/).filter(Boolean).length : 0), 0);
+    const card = document.createElement('button');
+    card.className = 'book-card';
+    card.innerHTML = `
+      <div class="spine" style="--book-color:${book.color}">
+        <span class="tag">${book.chapters.length} თავი</span>
+        <span class="title">${escapeHtml(book.title || 'უსათაურო')}</span>
+        <span class="author">${escapeHtml(book.author || 'ავტორი უცნობია')}</span>
+      </div>
+      <div class="book-meta">
+        <div class="status">${wordCount} სიტყვა</div>
+        <p class="blurb">დააჭირე რომ წაიკითხო ან გააგრძელო წერა.</p>
+      </div>`;
+    card.addEventListener('click', () => openBook(book.id));
+    grid.appendChild(card);
+  });
+  const addCard = document.createElement('button');
+  addCard.className = 'new-book-card';
+  addCard.innerHTML = `<span class="plus">+</span><span class="label">ახალი წიგნი</span>`;
+  addCard.addEventListener('click', () => {
+    const b = newBook();
+    library.books.push(b);
+    scheduleSave();
+    renderShelf();
+    openBook(b.id);
+  });
+  grid.appendChild(addCard);
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function currentBook(){ return library.books.find(b => b.id === currentBookId); }
+
+function showLibrary(){
+  el('library-view').classList.add('active');
+  el('book-view').classList.remove('active');
+  renderShelf();
+  window.scrollTo(0,0);
+}
+
+function openBook(id){
+  currentBookId = id;
+  currentChapterIdx = 0;
+  el('library-view').classList.remove('active');
+  el('book-view').classList.add('active');
+  el('book-title-input').value = currentBook().title;
+  el('book-author-input').value = currentBook().author;
+  el('book-bio-input').value = currentBook().bio || '';
+  setMode('read');
+  renderChapterList();
+  renderChapter();
+  window.scrollTo(0,0);
+}
+
+el('book-title-input').addEventListener('input', e => { currentBook().title = e.target.value; scheduleSave(); });
+el('book-author-input').addEventListener('input', e => { currentBook().author = e.target.value; scheduleSave(); });
+el('book-bio-input').addEventListener('input', e => { currentBook().bio = e.target.value; scheduleSave(); });
+
+function setMode(m){
+  mode = m;
+  el('mode-read-btn').classList.toggle('active', m === 'read');
+  el('mode-write-btn').classList.toggle('active', m === 'write');
+  el('read-mode-content').style.display = m === 'read' ? 'block' : 'none';
+  el('write-mode-content').style.display = m === 'write' ? 'block' : 'none';
+  renderShareHint();
+  renderChapter();
+}
+
+function renderShareHint(){
+  const wrap = el('share-hint-wrap');
+  if(mode === 'write'){
+    wrap.innerHTML = `<div class="share-hint"><b>შენიშვნა:</b> ეს გვერდი გაზიარებულია — ვინც ამ ბმულს გახსნის, დაინახავს (და შეძლებს შეცვალოს) იმას, რასაც აქ წერ.</div>`;
+  } else {
+    wrap.innerHTML = '';
+  }
+}
+
+function renderChapterList(){
+  const list = el('chapter-list');
+  list.innerHTML = '';
+  currentBook().chapters.forEach((ch, i) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.className = 'chapter-btn' + (i === currentChapterIdx ? ' active' : '');
+    btn.innerHTML = `<span class="num">${String(i+1).padStart(2,'0')}</span><span class="tt">${escapeHtml(ch.title || 'უსათაურო თავი')}</span>`;
+    btn.addEventListener('click', () => { currentChapterIdx = i; renderChapterList(); renderChapter(); });
+    li.appendChild(btn);
+
+    if(currentBook().chapters.length > 1){
+      const del = document.createElement('button');
+      del.className = 'del-chapter';
+      del.textContent = '✕';
+      del.title = 'თავის წაშლა';
+      del.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        if(confirm('წავშალო ეს თავი?')){
+          currentBook().chapters.splice(i, 1);
+          if(currentChapterIdx >= currentBook().chapters.length) currentChapterIdx = currentBook().chapters.length - 1;
+          scheduleSave();
+          renderChapterList();
+          renderChapter();
+        }
+      });
+      li.appendChild(del);
+    }
+    list.appendChild(li);
+  });
+}
+
+function addChapter(){
+  const ch = { id: uid(), title: `თავი ${currentBook().chapters.length + 1}`, body: '' };
+  currentBook().chapters.push(ch);
+  currentChapterIdx = currentBook().chapters.length - 1;
+  scheduleSave();
+  renderChapterList();
+  renderChapter();
+  if(mode !== 'write') setMode('write');
+}
+
+function renderChapter(){
+  const book = currentBook();
+  const ch = book.chapters[currentChapterIdx];
+  el('page-progress').textContent = `თავი ${currentChapterIdx + 1} / ${book.chapters.length}`;
+  el('ch-eyebrow').textContent = book.title;
+
+  if(mode === 'read'){
+    const body = (ch.body || '').trim();
+    const paras = body ? body.split(/\n\s*\n/).filter(p => p.trim()) : [];
+    let html = `<h2 class="chapter-title">${escapeHtml(ch.title || 'უსათაურო თავი')}</h2>`;
+    if(paras.length){
+      html += `<div class="chapter-body" id="chapter-body-el">` + paras.map(p => `<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('') + `</div>`;
+    } else {
+      html += `<p class="empty-note">ეს თავი ჯერ ცარიელია — გადადი „წერის" რეჟიმზე რომ დაიწყო წერა.</p>`;
+    }
+    el('read-mode-content').innerHTML = html;
+    const bodyEl = document.getElementById('chapter-body-el');
+    if(bodyEl) bodyEl.style.fontSize = fontSize + 'px';
+  } else {
+    el('edit-title-input').value = ch.title;
+    el('edit-body-textarea').value = ch.body || '';
+    el('edit-body-textarea').style.fontSize = fontSize + 'px';
+  }
+
+  el('prev-btn').disabled = currentChapterIdx === 0;
+  el('next-btn').disabled = currentChapterIdx === book.chapters.length - 1;
+  document.querySelector('.book-main').scrollIntoView({block:'start'});
+}
+
+el('edit-title-input').addEventListener('input', e => {
+  currentBook().chapters[currentChapterIdx].title = e.target.value;
+  renderChapterList();
+  scheduleSave();
+});
+el('edit-body-textarea').addEventListener('input', e => {
+  currentBook().chapters[currentChapterIdx].body = e.target.value;
+  scheduleSave();
+});
+
+function navChapter(delta){
+  const book = currentBook();
+  const next = currentChapterIdx + delta;
+  if(next < 0 || next >= book.chapters.length) return;
+  currentChapterIdx = next;
+  renderChapterList();
+  renderChapter();
+}
+
+function changeFontSize(delta){
+  fontSize = Math.min(24, Math.max(15, fontSize + delta));
+  renderChapter();
+}
+
+loadLibrary();
+</script>
+
+</body>
+</html>
